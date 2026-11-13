@@ -11,21 +11,21 @@ Home Assistant の認証付き API 経由で Discord を使うためのカスタ
 
 姉妹プロジェクトとして、Home Assistant アドオン版の **Discord Bridge** があります。
 
-- リポジトリ：[home-assistant-discord-bridge](https://github.com/papadenkilab/home-assistant-discord-bridge)
+- リポジトリ：https://github.com/papadenkilab/home-assistant-discord-bridge
 
 アドオン版は単独のコンテナとして Discord の Gateway に常駐し、許可したユーザーの発言を SQLite キューに保存します。外部のアシスタントは小さな HTTP API（ポート 8765、Tailscale 経由など）でキューを読み、返信やファイル添付、管理操作を行います。この統合のブリッジモードは、そのアドオンのキューを Home Assistant の認証付き API 越しに中継するためのものです。
 
 ### アドオン版との機能比較
 
 | 項目 | この統合（カスタム統合） | アドオン版 |
-|---|---|---|
+| --- | --- | --- |
 | 形態・導入 | HA 本体の中で動くカスタム統合。HACS のカスタムリポジトリ、または `custom_components` へ手動配置 | HA のアドオンとして別コンテナで動作。アドオンストアにリポジトリ登録して導入 |
 | 外部からの接続先 | HA の既存の HTTPS（例：DuckDNS）に HA の長期アクセストークンで接続。**新しいポートは開けない** | アドオンの HTTP API（ポート 8765）。Tailscale 等のプライベートな経路経由が前提 |
 | 認証 | Home Assistant の認証（既定では管理者ユーザーのみ許可） | 専用のキュートークン（ヘッダ `X-Queue-Token`） |
 | Discord への接続 | REST のみ（Gateway には接続しない）。Bot トークンは HA 内に保存 | Gateway に常駐（WebSocket）し、発言をリアルタイムに受信。Bot トークンはアドオン設定内に保存 |
 | 受信の仕組み | 履歴のポーリング取得。監視チャンネルの新着は既読位置（mark_read）で管理し、キューとは競合しない | 許可ユーザーの発言をキューに自動保存（👀 リアクション付き）。再接続時は履歴からバックフィル。受信時に添付ファイルもデータ領域へ保存 |
 | 投稿・ファイル添付 | ○（添付は multipart、25MB まで） | ○（`/send`／`/send_file`、25MB まで） |
-| フォーラム | 投稿の一覧・作成（タグ指定対応）、フォーラム情報の取得 | 送信先がフォーラムなら投稿を自動作成（タイトル指定可）、スレッド一覧の取得 |
+| フォーラム | 投稿の一覧・作成（タグ指定対応）、フォーラム情報の取得。**既存投稿へのタグ付け替え（v1.1.0〜）** | 送信先がフォーラムなら投稿を自動作成（タイトル指定可）、スレッド一覧の取得 |
 | チャンネル管理 | 作成・変更（フォーラムのタグ付け替え含む）、チャンネル情報の取得 | 作成・編集・削除 |
 | その他の管理・機能 | 投票の作成・結果取得・早期終了、サーバーの予定イベントの一覧・作成 | メッセージ削除・一括削除、ピン留め／解除、リアクション追加、スレッド作成、ロール付け外し、メンバー／ロール一覧 |
 | 添付ファイルの受信 | 履歴取得で添付・埋め込み・スタンプの情報を含む（本体は Discord の URL から取得） | 受信時に本体をダウンロード保存し、API で取得可能 |
@@ -82,6 +82,8 @@ Bot に Discord の「チャンネルの管理（Manage Channels）」権限が�
 | POST | `/api/discord_bridge/direct/channels` | チャンネル作成。`{"guild_id", "name", "type", "parent_id", "topic", "available_tags"}`。type 15 でフォーラム作成、`available_tags` はタグ名の文字列または `{"name", "emoji_name"}`（最大20個） |
 | GET | `/api/discord_bridge/direct/channel?channel_id=` | チャンネル情報（フォーラムはタグ含む） |
 | POST / PATCH | `/api/discord_bridge/direct/channel` | チャンネル変更。`{"channel_id", "name", "topic", "parent_id", "position"}`。フォーラムのタグ付け替えは `"tags": ["画像", "動画"]`（名前指定・既存タグのIDと絵文字は保持され、指定外のタグは削除）。生の形式が必要な場合は `"available_tags"` も可 |
+
+- **既存のフォーラム投稿へのタグ付け替え**：同じ `POST / PATCH /api/discord_bridge/direct/channel` に `"applied_tags": ["GitHub", "公開済み"]` を渡すと、その投稿（スレッド）に付くタグを指定した集合に置き換えます。タグ名は親フォーラムで解決し、最大5個、指定外のタグは外れます。未知のタグ名は 400 で利用可能タグの一覧を返します。
 
 履歴を読むだけなので、アドオンのキューや他のアシスタントと取り合いになりません。
 
@@ -143,7 +145,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 
 ## テスト
 
-`tests/` に、アドオンと Discord API の挙動を模したスタブ相手のテストがあります（34 件）。
+`tests/` に、アドオンと Discord API の挙動を模したスタブ相手のテストがあります（36 件）。
 
 ```sh
 python3 -m venv .venv

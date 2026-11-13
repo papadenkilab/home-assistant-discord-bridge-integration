@@ -1,12 +1,1 @@
-{
-  "config_flow": true,
-  "dependencies": [
-    "http"
-  ],
-  "documentation": "https://github.com/papadenkilab/home-assistant-discord-bridge-integration",
-  "domain": "discord_bridge",
-  "iot_class": "local_polling",
-  "name": "Discord Bridge",
-  "requirements": [],
-  "version": "1.0.0"
-}
+{"config_flow": true, "dependencies": ["http"], "documentation": "https://github.com/papadenkilab/home-assistant-discord-bridge-integration", "domain": "discord_bridge", "iot_class": "local_polling", "name": "Discord Bridge", "requirements": [], "version": "1.1.0"}

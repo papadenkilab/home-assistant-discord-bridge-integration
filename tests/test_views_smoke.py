@@ -415,6 +415,48 @@ async def test_direct_create_and_edit_channel_views():
 
 
 @pytest.mark.asyncio
+async def test_direct_edit_channel_view_sets_thread_tags():
+    server = StubDiscord()
+    async with TestClient(TestServer(server.app)) as http_client:
+        base = str(http_client.make_url("/api/v10"))
+        client = DiscordClient(
+            http_client.session, "good-token", author_id="111", api_base=base
+        )
+        hass = FakeDirectHass(client)
+        admin = FakeUser(is_admin=True)
+
+        body = {
+            "channel_id": FORUM,
+            "title": "作品",
+            "content": "本文",
+            "tags": ["画像"],
+        }
+        response = await DirectForumPostsView().post(
+            FakeRequest(hass, admin, body=body)
+        )
+        assert response.status == 200
+        post = json.loads(response.text)
+        assert post["applied_tags"] == ["t1"]
+
+        retag = {
+            "channel_id": post["id"],
+            "applied_tags": ["アプリ", "画像"],
+        }
+        response = await DirectChannelView().patch(
+            FakeRequest(hass, admin, body=retag)
+        )
+        assert response.status == 200
+        payload = json.loads(response.text)
+        assert payload["applied_tags"] == ["t3", "t1"]
+
+        bad = {"channel_id": post["id"], "applied_tags": ["無いタグ"]}
+        response = await DirectChannelView().patch(
+            FakeRequest(hass, admin, body=bad)
+        )
+        assert response.status == 400
+
+
+@pytest.mark.asyncio
 async def test_direct_poll_lifecycle_views():
     server = StubDiscord()
     async with TestClient(TestServer(server.app)) as http_client:

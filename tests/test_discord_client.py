@@ -210,6 +210,11 @@ class StubDiscord:
             channel["available_tags"] = self._assign_tag_ids(
                 body["available_tags"]
             )
+        if "applied_tags" in body:
+            channel["applied_tags"] = list(body["applied_tags"])
+            for thread in self.threads:
+                if thread["id"] == cid:
+                    thread["applied_tags"] = list(body["applied_tags"])
         return web.json_response(channel)
 
     async def create_thread(self, request):
@@ -244,6 +249,11 @@ class StubDiscord:
             "thread_metadata": {"archived": False, "locked": False},
         }
         self.threads.append(thread)
+        self.channel_store[thread["id"]] = {
+            "id": thread["id"], "name": thread["name"], "type": 11,
+            "parent_id": cid, "topic": None, "available_tags": [],
+            "applied_tags": list(thread["applied_tags"]),
+        }
         return web.json_response(thread, status=201)
 
     async def active_threads(self, request):
@@ -636,6 +646,27 @@ async def test_set_forum_tags_preserves_existing_ids(stub):
     assert "文書・記事" not in tags  # unlisted tags are removed
     with pytest.raises(DiscordError):
         await client.set_forum_tags(CHANNEL, ["画像"])
+
+
+@pytest.mark.asyncio
+async def test_set_thread_tags_resolves_names(stub):
+    server, session, base = stub
+    client = make_client(session, base)
+    post = await client.create_forum_post(
+        FORUM, "作品", content="本文", applied_tags=["t1"]
+    )
+    updated = await client.set_thread_tags(
+        post["id"], ["アプリ", "文書・記事"]
+    )
+    assert updated["applied_tags"] == ["t3", "t2"]
+    assert server.last_patch_body == {"applied_tags": ["t3", "t2"]}
+    with pytest.raises(DiscordError) as excinfo:
+        await client.set_thread_tags(post["id"], ["無いタグ"])
+    assert excinfo.value.status == 400
+    with pytest.raises(DiscordError):
+        await client.set_thread_tags(CHANNEL, ["画像"])
+    with pytest.raises(DiscordError):
+        await client.set_thread_tags(FORUM, ["画像"])
 
 
 @pytest.mark.asyncio

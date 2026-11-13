@@ -401,13 +401,16 @@ class DiscordClient:
         parent_id: str | None = None,
         position: int | None = None,
         available_tags: list[Any] | None = None,
+        applied_tags: list[str] | None = None,
     ) -> dict[str, Any]:
         """Modify a channel: rename, topic, parent, position, tags.
 
         Only the fields given are sent. For forum tags, pass the full
         desired list; entries that keep their ``id`` stay the same tag,
         entries without one are created (see set_forum_tags for the
-        name-based convenience version).
+        name-based convenience version). ``applied_tags`` replaces the
+        tags on a thread (a forum post) and takes tag ids; see
+        set_thread_tags for the name-based convenience version.
         """
         body: dict[str, Any] = {}
         if name is not None:
@@ -429,6 +432,12 @@ class DiscordClient:
                 self._tag_for_write(t, keep_id=True)
                 for t in available_tags
             ]
+        if applied_tags is not None:
+            if len(applied_tags) > 5:
+                raise DiscordError(
+                    "a forum post can have at most 5 tags", status=400
+                )
+            body["applied_tags"] = [str(t) for t in applied_tags]
         if not body:
             raise DiscordError(
                 "nothing to change: give at least one field", status=400
@@ -436,7 +445,10 @@ class DiscordClient:
         payload = await self._request(
             "PATCH", f"/channels/{channel_id}", json=body
         )
-        return normalize_channel(payload or {})
+        result = normalize_channel(payload or {})
+        if "applied_tags" in (payload or {}):
+            result["applied_tags"] = payload.get("applied_tags") or []
+        return result
 
     async def set_forum_tags(
         self, channel_id: str, tags: list[Any]
@@ -467,6 +479,35 @@ class DiscordClient:
                 merged.append(tag)
         return await self.edit_channel(
             channel_id, available_tags=merged
+        )
+
+    async def set_thread_tags(
+        self, channel_id: str, tags: list[str]
+    ) -> dict[str, Any]:
+        """Replace the tags on a forum post (thread), by name or id.
+
+        Names are resolved against the parent forum's available tags;
+        unknown names are a 400 with the available list. The full
+        desired set must be given: tags not listed are removed.
+        """
+        thread = await self.channel(channel_id)
+        parent_id = thread.get("parent_id")
+        if not parent_id:
+            raise DiscordError(
+                "channel has no parent; only forum posts (threads) "
+                "carry applied tags",
+                status=400,
+            )
+        parent = await self.channel(str(parent_id))
+        if parent.get("type") != 15:
+            raise DiscordError(
+                "the parent channel is not a forum channel "
+                f"(type {parent.get('type')})",
+                status=400,
+            )
+        resolved = self.resolve_tag_ids(parent, [str(t) for t in tags])
+        return await self.edit_channel(
+            channel_id, applied_tags=resolved
         )
 
     async def forum_tags(self, channel_id: str) -> list[dict[str, Any]]:

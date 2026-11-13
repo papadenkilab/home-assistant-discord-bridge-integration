@@ -33,10 +33,12 @@ with the add-on's queue or another assistant:
   GET  /api/discord_bridge/direct/channel?channel_id=
   POST /api/discord_bridge/direct/channel
        {channel_id, name?, topic?, parent_id?, position?,
-        tags?: [names] | available_tags?: [...]}
+        tags?: [names] | available_tags?: [...] | applied_tags?: [names]}
        Modifies a channel (also available as PATCH). ``tags`` replaces
        a forum's tags by name, preserving existing tag ids; use
-       ``available_tags`` for the raw Discord form.
+       ``available_tags`` for the raw Discord form. ``applied_tags``
+       replaces the tags on one forum post (thread), resolved by name
+       against the parent forum.
   POST /api/discord_bridge/direct/poll
        {channel_id, question, answers: [text | {text, emoji_name}],
         duration_hours?, allow_multiselect?, content?}
@@ -356,7 +358,27 @@ class DirectChannelView(_BaseView):
                 {"error": "channel_id is required"}, status_code=400
             )
         try:
-            if body.get("tags") is not None and (
+            if body.get("applied_tags") is not None:
+                # A forum post (thread): replace its tags, resolving
+                # names against the parent forum. Other edits go first,
+                # so the response reflects the final state.
+                if (
+                    body.get("name") is not None
+                    or body.get("topic") is not None
+                    or body.get("parent_id") is not None
+                    or body.get("position") is not None
+                ):
+                    await client.edit_channel(
+                        str(channel_id),
+                        name=body.get("name"),
+                        topic=body.get("topic"),
+                        parent_id=body.get("parent_id"),
+                        position=body.get("position"),
+                    )
+                channel = await client.set_thread_tags(
+                    str(channel_id), body["applied_tags"]
+                )
+            elif body.get("tags") is not None and (
                 body.get("name") is not None
                 or body.get("topic") is not None
                 or body.get("parent_id") is not None
