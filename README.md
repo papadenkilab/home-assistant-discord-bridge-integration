@@ -120,13 +120,19 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 
 ## インストールと設定
 
-### HACS で入れる
+### Marketplace / HACS で入れる
 
-下のボタンを押すと、Home Assistant の画面でこのリポジトリを HACS のカスタムリポジトリとして登録するダイアログが開きます。
+Home Assistant 2026.11 以降は標準搭載の Marketplace、それ以前は HACS から入れられます。どちらのボタンも、自分の Home Assistant でこのリポジトリを開きます（カタログ未掲載のため、案内に従ってカスタムリポジトリとして追加してください）。
+
+Marketplace（2026.11 以降）：
+
+[![Home Assistant を開いて、Marketplace でこのリポジトリを表示する](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=papadenkilab&repository=home-assistant-discord-bridge-integration&category=integration)
+
+HACS（2026.11 より前）：
 
 [![Home Assistant を開いて、このリポジトリを HACS に登録するダイアログを表示する](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository=https%3A%2F%2Fgithub.com%2Fpapadenkilab%2Fhome-assistant-discord-bridge-integration&category=integration)
 
-手動で登録する場合は、HACS の画面で「⋮」→「カスタムリポジトリ」を開き、リポジトリに `https://github.com/papadenkilab/home-assistant-discord-bridge-integration`、カテゴリに「統合」を指定します。登録後、HACS から「Discord Bridge」をダウンロードし、Home Assistant を再起動します。
+手動で追加する場合は、Marketplace の「Add from link」（HACS では「⋮」→「カスタムリポジトリ」）で、リポジトリに `https://github.com/papadenkilab/home-assistant-discord-bridge-integration`、カテゴリに「統合」を指定します。追加後、「Discord Bridge」をダウンロード（インストール）し、案内があれば Home Assistant を再起動します。
 
 ### 手動で入れる
 
