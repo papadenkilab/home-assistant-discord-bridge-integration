@@ -120,8 +120,19 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 
 ## インストールと設定
 
-1. `custom_components/discord_bridge/` を HA の `/config/custom_components/` にコピーし、Home Assistant を再起動します。HACS を使う場合は、このリポジトリをカスタムリポジトリ（統合）として追加しても入れられます。
-2. 「設定」→「デバイスとサービス」→「統合を追加」→「Discord Bridge」で入力します。
+### HACS で入れる
+
+下のボタンを押すと、Home Assistant の画面でこのリポジトリを HACS のカスタムリポジトリとして登録するダイアログが開きます。
+
+[![Home Assistant を開いて、このリポジトリを HACS に登録するダイアログを表示する](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository=https%3A%2F%2Fgithub.com%2Fpapadenkilab%2Fhome-assistant-discord-bridge-integration&category=integration)
+
+手動で登録する場合は、HACS の画面で「⋮」→「カスタムリポジトリ」を開き、リポジトリに `https://github.com/papadenkilab/home-assistant-discord-bridge-integration`、カテゴリに「統合」を指定します。登録後、HACS から「Discord Bridge」をダウンロードし、Home Assistant を再起動します。
+
+### 手動で入れる
+
+`custom_components/discord_bridge/` を HA の `/config/custom_components/` にコピーし、Home Assistant を再起動します。
+
+その後、「設定」→「デバイスとサービス」→「統合を追加」→「Discord Bridge」で入力します。
 
 ### 設定項目
 
